@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0F1216">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Můj trénink</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0F1216;
+    --surface:#171C22;
+    --surface2:#1E252D;
+    --line:#262E37;
+    --text:#E9EDF1;
+    --muted:#8C99A6;
+    --accent:#F0A63A;      /* magnézium / chalk amber */
+    --accent-dim:#6b4d1d;
+    --ok:#57C784;
+    --danger:#E06C5B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:15px}
+  body{padding-bottom:40px}
+
+  header{
+    position:sticky;top:0;z-index:10;background:linear-gradient(var(--bg) 75%,rgba(15,18,22,0));
+    padding:14px 16px 8px;
+  }
+  .titlebar{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  h1{font-family:'Barlow Condensed';font-weight:700;font-size:26px;letter-spacing:.5px;text-transform:uppercase}
+  h1 span{color:var(--accent)}
+  #btnSettings{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 6px}
+  #syncStatus{font-size:11.5px;color:var(--muted);margin-top:2px;min-height:15px}
+  #syncStatus.err{color:var(--danger)}
+
+  .tabs{display:flex;gap:8px;overflow-x:auto;padding:10px 0 6px;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{
+    flex:0 0 auto;font-family:'Barlow Condensed';font-weight:600;font-size:17px;letter-spacing:.4px;
+    text-transform:uppercase;color:var(--muted);background:var(--surface);border:1px solid var(--line);
+    border-radius:999px;padding:7px 16px;cursor:pointer;white-space:nowrap;
+  }
+  .tab.active{color:#141414;background:var(--accent);border-color:var(--accent)}
+
+  main{padding:4px 14px}
+  .section{
+    font-family:'Barlow Condensed';font-weight:600;font-size:14px;letter-spacing:2px;text-transform:uppercase;
+    color:var(--muted);margin:20px 4px 8px;display:flex;align-items:center;gap:10px;
+  }
+  .section::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  .card{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    padding:13px 14px;margin-bottom:10px;
+  }
+  .card.done{opacity:.55}
+  .exname{font-family:'Barlow Condensed';font-weight:600;font-size:20px;letter-spacing:.3px;line-height:1.15}
+  .exmeta{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+  .chip{
+    font-size:12px;font-weight:500;color:var(--text);background:var(--surface2);
+    border:1px solid var(--line);border-radius:7px;padding:3px 8px;
+  }
+  .chip.reps{color:var(--accent);border-color:var(--accent-dim);font-weight:600}
+  .chip.timer{color:#141414;background:var(--accent);border-color:var(--accent);font-weight:600;min-width:70px;text-align:center}
+  .note{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.45}
+
+  .sets{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .plate{
+    width:36px;height:36px;border-radius:50%;border:2.5px solid var(--line);
+    background:var(--surface2);color:var(--muted);font-weight:600;font-size:13px;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;
+    transition:all .12s;
+  }
+  .plate.filled{border-color:var(--accent);background:var(--accent);color:#141414}
+  .weight{
+    margin-left:auto;display:flex;align-items:center;gap:5px;
+  }
+  .weight input{
+    width:64px;background:var(--surface2);border:1px solid var(--line);border-radius:8px;
+    color:var(--text);font-family:'Inter';font-size:14px;padding:6px 8px;text-align:right;
+  }
+  .weight label{font-size:11px;color:var(--muted)}
+
+  .simple{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .simple .val{font-family:'Barlow Condensed';font-weight:600;font-size:18px;color:var(--accent)}
+
+  /* settings */
+  dialog{
+    border:none;border-radius:16px;background:var(--surface);color:var(--text);
+    width:min(92vw,420px);padding:20px;margin:auto;
+  }
+  dialog::backdrop{background:rgba(0,0,0,.6)}
+  dialog h2{font-family:'Barlow Condensed';font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px}
+  dialog label{display:block;font-size:12px;color:var(--muted);margin:12px 0 5px}
+  dialog input,dialog textarea{
+    width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:9px;
+    color:var(--text);font-family:'Inter';font-size:13.5px;padding:9px 10px;
+  }
+  dialog textarea{resize:vertical;min-height:54px}
+  .btnrow{display:flex;gap:10px;margin-top:18px}
+  .btn{
+    flex:1;border:none;border-radius:10px;padding:11px 0;font-family:'Inter';font-weight:600;
+    font-size:14px;cursor:pointer;
+  }
+  .btn.primary{background:var(--accent);color:#141414}
+  .btn.ghost{background:var(--surface2);color:var(--text);border:1px solid var(--line)}
+  .hint{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:10px}
+  #btnRefresh{
+    position:fixed;right:16px;bottom:16px;width:52px;height:52px;border-radius:50%;
+    border:none;background:var(--accent);color:#141414;font-size:22px;cursor:pointer;
+    box-shadow:0 4px 16px rgba(0,0,0,.45);
+  }
+  #btnRefresh.spin{animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){#btnRefresh.spin{animation:none}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="titlebar">
+    <h1>Můj <span>trénink</span></h1>
+    <button id="btnSettings" aria-label="Nastavení">⚙︎</button>
+  </div>
+  <div id="syncStatus"></div>
+  <nav class="tabs" id="tabs"></nav>
+</header>
+
+<main id="content"></main>
+
+<button id="btnRefresh" aria-label="Aktualizovat ze Sheetu" title="Aktualizovat ze Sheetu">↻</button>
+
+<dialog id="dlg">
+  <h2>Nastavení</h2>
+  <label for="inUrl">Odkaz na Google Sheet</label>
+  <input id="inUrl" placeholder="https://docs.google.com/spreadsheets/d/…">
+  <label for="inSheets">Názvy listů (oddělené čárkou)</label>
+  <textarea id="inSheets"></textarea>
+  <div class="hint">
+    Sheet musí mít nastaveno sdílení <b>„Kdokoli s odkazem – Čtenář“</b>.
+    Pokud trenér přidá nebo přejmenuje list, uprav seznam názvů tady.
+  </div>
+  <div class="btnrow">
+    <button class="btn ghost" id="btnClose">Zavřít</button>
+    <button class="btn primary" id="btnSave">Uložit a načíst</button>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+
+/* ================= EMBEDDED PLAN (fallback / offline) ================= */
+const DEFAULT_SHEETS = ["Lower A","Upper A","Day off","Lower B","Upper B","Kombinace","Day off 2"];
+
+const EMBEDDED = {
+"Lower A":[
+ {t:"sec",name:"Nohy"},
+ {t:"row",name:"Zahřátí na páse",val:"5–10 min",note:"rychlejší chůze"},
+ {t:"row",name:"Strečink dané partie",val:"5–10 min",note:"rozcvička s důrazem na rozsah pohybu"},
+ {t:"ex",name:"Zakopávání v sedě",s:3,r:"12",note:"1. série přípravná + 3 pracovní",pause:"60 sec. pauza"},
+ {t:"ex",name:"Bulharské dřepy",s:4,r:"8",note:"zaměřeno na stehna – kolmý pohyb",pause:"120 sec. pauza"},
+ {t:"ex",name:"Rumunské tahy s osou",s:4,r:"8",note:"negativní fáze – pomalý pohyb dolů",pause:"90 sec. pauza"},
+ {t:"ex",name:"Leg press na úzko",s:4,r:"10",note:"šíře kyčle, nižší postavení nohou",pause:"90 sec. pauza"},
+ {t:"ex",name:"Abdukce v sedě",s:3,r:"20",note:"rovné bedra, lehký předklon, v tenzi STOP pauza",pause:"60 sec. pauza"},
+ {t:"ex",name:"Výpony na lýtka v sedě",s:3,r:"20",note:"plný rozsah pohybu, zatlačit dolů a ve výponu STOP",pause:"90 sec. pauza"}
+],
+"Upper A":[
+ {t:"sec",name:"Horní část těla"},
+ {t:"row",name:"Zahřátí na páse",val:"5–10 min",note:"rychlejší chůze"},
+ {t:"row",name:"Strečink dané partie",val:"5–10 min",note:"rozcvička s důrazem na rozsah pohybu"},
+ {t:"ex",name:"Přítahy na hrazdě",s:5,r:"8",note:"široký úchop – STOP v horní fázi – negativně",pause:"90 sec. pauza"},
+ {t:"ex",name:"Stahování horní kladky",s:4,r:"10",note:"úzký úchop podhmatem, lehký záklon",pause:"90 sec. pauza"},
+ {t:"ex",name:"Přítahy JČ na šikmé lavici",s:3,r:"10",note:"opora hrudníku, STOP pauza v horní části",pause:"90 sec. pauza"},
+ {t:"ex",name:"Zapažování ramen – rear delt",s:4,r:"12",note:"opřený hrudník na stroji",pause:"60 sec. pauza"},
+ {t:"ex",name:"Face pulls – provazy",s:3,r:"12",note:"negativní fáze, pomalý pohyb zpět",pause:"90 sec. pauza"},
+ {t:"ex",name:"Upažování ramen – opora ve stoje o lavici",s:4,r:"10",note:"negativní fáze, pomalý pohyb zpět",pause:"90 sec. pauza"},
+ {t:"sec",name:"Kardio"},
+ {t:"row",name:"Core",val:"10 min",note:"cviky na hluboký stab. systém břišního svalstva"},
+ {t:"row",name:"Schody",val:"30 min",note:""}
+],
+"Day off":[
+ {t:"sec",name:"Volný den"},
+ {t:"row",name:"Procházka",val:"min. 15 000 kroků",note:""}
+],
+"Lower B":[
+ {t:"sec",name:"Nohy + triceps"},
+ {t:"row",name:"Zahřátí na páse",val:"5–10 min",note:"rychlejší chůze"},
+ {t:"row",name:"Strečink dané partie",val:"5–10 min",note:"rozcvička s důrazem na rozsah pohybu"},
+ {t:"ex",name:"Předkopávání",s:4,r:"12",note:"STOP pauza v horní části, negativní série",pause:"90 sec. pauza"},
+ {t:"ex",name:"Výpady v chůzi se zátěží",s:4,r:"X",note:"1 cesta = od zrcadla a zase zpět",pause:"120 sec. pauza"},
+ {t:"ex",name:"Hip thrust",s:4,r:"10",note:"STOP pauza",pause:"90 sec. pauza"},
+ {t:"ex",name:"Addukce v sedě",s:3,r:"20",note:"rovné bedra, lehký předklon, v tenzi STOP pauza",pause:"90 sec. pauza"},
+ {t:"ex",name:"Francouzské tlaky v leže s EZ osou",s:4,r:"8",note:"plný rozsah pohybu",pause:"90 sec. pauza"},
+ {t:"ex",name:"Stahování provazů na kladce (triceps)",s:3,r:"12",note:"plný rozsah pohybu",pause:"90 sec. pauza"},
+ {t:"sec",name:"Kardio"},
+ {t:"row",name:"Chůze na páse",val:"30 min",note:""}
+],
+"Upper B":[
+ {t:"sec",name:"Horní část těla"},
+ {t:"row",name:"Zahřátí na páse",val:"5–10 min",note:"rychlejší chůze"},
+ {t:"row",name:"Strečink dané partie",val:"5–10 min",note:"rozcvička s důrazem na rozsah pohybu"},
+ {t:"ex",name:"Peck deck na prsa",s:4,r:"12",note:"rozpažování na prsa v sedě",pause:"90 sec. pauza"},
+ {t:"ex",name:"Tlaky s JČ na rovné lavici",s:4,r:"12",note:"(prsa) stažené lopatky u sebe, lokty pod úhlem k tělu",pause:"90 sec. pauza"},
+ {t:"ex",name:"Tlaky JČ na ramena",s:4,r:"10",note:"hlídat polohu loktů, nevypínat sval ve spodní fázi",pause:"90 sec. pauza"},
+ {t:"ex",name:"Upažování s JČ s oporou hrudníku",s:3,r:"12",note:"opora hrudníku o lavici",pause:"90 sec. pauza"},
+ {t:"ex",name:"Předpažování s kotoučem",s:4,r:"10",note:"opora zad o lavici – negativní pohyb",pause:"90 sec. pauza"},
+ {t:"ex",name:"Bicepsový zdvih s EZ osou",s:3,r:"12",note:"lokty držet u těla a mírně před žebry",pause:"90 sec. pauza"},
+ {t:"row",name:"Core",val:"10 min",note:"cviky na břišní svalstvo – zaměření na spodní břicho"}
+],
+"Kombinace":[
+ {t:"sec",name:"Nohy + horní část"},
+ {t:"row",name:"Zahřátí na páse",val:"5–10 min",note:"rychlejší chůze"},
+ {t:"row",name:"Strečink dané partie",val:"5–10 min",note:"rozcvička s důrazem na rozsah pohybu"},
+ {t:"ex",name:"Mrtvý tah",s:5,r:"8",note:"silový rozvoj a stabilizace zad a nohou",pause:"120 sec."},
+ {t:"ex",name:"Čelní dřepy na multipresu",s:4,r:"10",note:"primární zacílení na přední část stehen",pause:"90 sec."},
+ {t:"ex",name:"Veslování na stroji",s:4,r:"10",note:"úzký adaptér, plný rozsah pohybu zádových svalů",pause:"90 sec."},
+ {t:"ex",name:"Rumunské tahy s JČ",s:3,r:"12",note:"hlídat rovinu beder, pomalý pohyb dolů",pause:"90 sec."},
+ {t:"ex",name:"SISI dřepy",s:4,r:"8",note:"primárně tlačit pánev dopředu",pause:"90 sec."},
+ {t:"ex",name:"Stahování kladky na triceps",s:3,r:"12",note:"mírný předklon, plný rozsah cviku",pause:"90 sec."},
+ {t:"sec",name:"Kardio"},
+ {t:"row",name:"Schody",val:"30 min",note:""},
+ {t:"row",name:"Core",val:"10 min",note:""}
+],
+"Day off 2":[
+ {t:"sec",name:"Volný den"},
+ {t:"row",name:"Procházka",val:"min. 15 000 kroků",note:""}
+]
+};
+
+/* ================= STORAGE (safe wrappers) ================= */
+const store = {
+  get(k){ try{return localStorage.getItem(k);}catch(e){return null;} },
+  set(k,v){ try{localStorage.setItem(k,v);}catch(e){} },
+  del(k){ try{localStorage.removeItem(k);}catch(e){} }
+};
+
+/* ================= STATE ================= */
+let cfg = {url:"", sheets: DEFAULT_SHEETS.slice()};
+try{ const c = JSON.parse(store.get("cfg")||"null"); if(c && c.sheets && c.sheets.length) cfg=c; }catch(e){}
+
+let data = EMBEDDED;
+let dataSource = "vestavěný plán";
+try{
+  const c = JSON.parse(store.get("cache")||"null");
+  if(c && c.data){ data = c.data; dataSource = "uloženo " + new Date(c.ts).toLocaleString("cs-CZ",{day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"}); }
+}catch(e){}
+
+let activeTab = store.get("tab") || cfg.sheets[0];
+if(!cfg.sheets.includes(activeTab)) activeTab = cfg.sheets[0];
+
+const todayKey = new Date().toISOString().slice(0,10);
+const timers = {}; // exId -> interval
+
+/* ================= CSV PARSER (RFC-4180-ish) ================= */
+function parseCSV(text){
+  const rows=[]; let row=[], cell="", inQ=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(inQ){
+      if(ch==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else inQ=false; }
+      else cell+=ch;
+    }else{
+      if(ch==='"') inQ=true;
+      else if(ch===','){ row.push(cell); cell=""; }
+      else if(ch==='\n'){ row.push(cell); rows.push(row); row=[]; cell=""; }
+      else if(ch!=='\r') cell+=ch;
+    }
+  }
+  if(cell!=="" || row.length){ row.push(cell); rows.push(row); }
+  return rows;
+}
+
+/* ================= CLASSIFY SHEET ROWS ================= */
+function classify(rows){
+  const out=[];
+  for(const r of rows){
+    const [name="",serie="",opak="",note="",cas="",vaha=""] = r.map(c=>(c||"").trim());
+    if(!name && !serie && !opak && !note && !cas) continue;
+    if(name.toLowerCase()==="cvik") continue; // header
+    if(name && !serie && !opak && !cas){ out.push({t:"sec",name}); continue; }
+    if(/^\d+$/.test(serie)){
+      out.push({t:"ex",name,s:parseInt(serie,10),r:opak||"—",note,pause:cas});
+    }else{
+      const val=[serie,opak].filter(Boolean).join(" ");
+      const nm = name || val || "—";
+      out.push({t:"row",name:nm,val:name?val:(cas||""),note:[note, name?cas:""].filter(Boolean).join(" · ")});
+    }
+  }
+  return out;
+}
+
+/* ================= FETCH FROM GOOGLE SHEETS ================= */
+function sheetId(url){ const m=(url||"").match(/\/d\/([a-zA-Z0-9-_]+)/); return m?m[1]:null; }
+
+async function refresh(){
+  const id = sheetId(cfg.url);
+  const st = document.getElementById("syncStatus");
+  if(!id){ st.textContent="Zdroj: "+dataSource+" · Sheet zatím nepřipojen (⚙︎)"; return; }
+  const btn=document.getElementById("btnRefresh"); btn.classList.add("spin");
+  st.classList.remove("err"); st.textContent="Načítám ze Sheetu…";
+  try{
+    const fresh={};
+    for(const name of cfg.sheets){
+      const u=`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`;
+      const res=await fetch(u);
+      if(!res.ok) throw new Error("List „"+name+"“: HTTP "+res.status);
+      fresh[name]=classify(parseCSV(await res.text()));
+    }
+    data=fresh;
+    store.set("cache",JSON.stringify({ts:Date.now(),data}));
+    dataSource="Sheet · "+new Date().toLocaleTimeString("cs-CZ",{hour:"2-digit",minute:"2-digit"});
+    st.textContent="Aktualizováno ze Sheetu ✓";
+    render();
+  }catch(e){
+    st.classList.add("err");
+    st.textContent="Nepodařilo se načíst ("+e.message+"). Zkontroluj sdílení a názvy listů. Zobrazuji: "+dataSource;
+  }finally{ btn.classList.remove("spin"); }
+}
+
+/* ================= RENDER ================= */
+function el(tag,cls,html){ const e=document.createElement(tag); if(cls)e.className=cls; if(html!==undefined)e.innerHTML=html; return e; }
+function esc(s){ return (s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function pauseSeconds(txt){ const m=(txt||"").match(/(\d+)\s*(sec|min)/i); if(!m)return 0; return m[2].toLowerCase().startsWith("min")?+m[1]*60:+m[1]; }
+
+function renderTabs(){
+  const t=document.getElementById("tabs"); t.innerHTML="";
+  for(const name of cfg.sheets){
+    const b=el("button","tab"+(name===activeTab?" active":""),esc(name));
+    b.onclick=()=>{ activeTab=name; store.set("tab",name); render(); };
+    t.appendChild(b);
+  }
+}
+
+function render(){
+  renderTabs();
+  const main=document.getElementById("content"); main.innerHTML="";
+  const rows=data[activeTab]||[];
+  if(!rows.length){ main.appendChild(el("p","note","Tento list je prázdný nebo se nenačetl.")); return; }
+  rows.forEach((row,idx)=>{
+    if(row.t==="sec"){ main.appendChild(el("div","section",esc(row.name))); return; }
+    if(row.t==="row"){
+      const c=el("div","card");
+      const s=el("div","simple");
+      s.appendChild(el("div","exname",esc(row.name)));
+      if(row.val)s.appendChild(el("div","val",esc(row.val)));
+      c.appendChild(s);
+      if(row.note)c.appendChild(el("div","note",esc(row.note)));
+      main.appendChild(c); return;
+    }
+    /* full exercise card */
+    const exId=activeTab+":"+idx+":"+row.name;
+    const setKey="sets:"+todayKey+":"+exId;
+    let doneSets=parseInt(store.get(setKey)||"0",10)||0;
+
+    const c=el("div","card");
+    c.appendChild(el("div","exname",esc(row.name)));
+    const meta=el("div","exmeta");
+    meta.appendChild(el("span","chip reps",row.s+" × "+esc(row.r)));
+    if(row.pause)meta.appendChild(el("span","chip","⏱ "+esc(row.pause.replace(/pauza/i,"").trim())));
+    const timerChip=el("span","chip timer",""); timerChip.style.display="none"; meta.appendChild(timerChip);
+    c.appendChild(meta);
+    if(row.note)c.appendChild(el("div","note",esc(row.note)));
+
+    const setsRow=el("div","sets");
+    const plates=[];
+    for(let i=1;i<=row.s;i++){
+      const p=el("button","plate"+(i<=doneSets?" filled":""),String(i));
+      p.onclick=()=>{
+        doneSets = (i===doneSets)? i-1 : i;
+        store.set(setKey,String(doneSets));
+        plates.forEach((pl,j)=>pl.classList.toggle("filled",j<doneSets));
+        c.classList.toggle("done",doneSets>=row.s);
+        if(doneSets>0 && doneSets<row.s) startTimer(exId,pauseSeconds(row.pause),timerChip);
+      };
+      plates.push(p); setsRow.appendChild(p);
+    }
+    /* weight input (persists between workouts) */
+    const wKey="w:"+activeTab+":"+row.name;
+    const wWrap=el("div","weight");
+    const wLab=el("label","", "kg"); const wIn=document.createElement("input");
+    wIn.type="text"; wIn.inputMode="decimal"; wIn.placeholder="váha";
+    wIn.value=store.get(wKey)||"";
+    wIn.onchange=()=>store.set(wKey,wIn.value.trim());
+    wWrap.appendChild(wIn); wWrap.appendChild(wLab);
+    setsRow.appendChild(wWrap);
+
+    c.appendChild(setsRow);
+    c.classList.toggle("done",doneSets>=row.s);
+    main.appendChild(c);
+  });
+}
+
+function startTimer(exId,secs,chipEl){
+  if(!secs)return;
+  if(timers[exId])clearInterval(timers[exId]);
+  let left=secs;
+  chipEl.style.display="";
+  const tick=()=>{
+    const m=Math.floor(left/60),s=left%60;
+    chipEl.textContent="pauza "+m+":"+String(s).padStart(2,"0");
+    if(left<=0){
+      clearInterval(timers[exId]); delete timers[exId];
+      chipEl.textContent="jedeme! 💪";
+      if(navigator.vibrate)navigator.vibrate([200,100,200]);
+      setTimeout(()=>{chipEl.style.display="none";},4000);
+    }
+    left--;
+  };
+  tick(); timers[exId]=setInterval(tick,1000);
+}
+
+/* ================= SETTINGS ================= */
+const dlg=document.getElementById("dlg");
+document.getElementById("btnSettings").onclick=()=>{
+  document.getElementById("inUrl").value=cfg.url;
+  document.getElementById("inSheets").value=cfg.sheets.join(", ");
+  dlg.showModal();
+};
+document.getElementById("btnClose").onclick=()=>dlg.close();
+document.getElementById("btnSave").onclick=()=>{
+  cfg.url=document.getElementById("inUrl").value.trim();
+  const names=document.getElementById("inSheets").value.split(",").map(s=>s.trim()).filter(Boolean);
+  if(names.length)cfg.sheets=names;
+  store.set("cfg",JSON.stringify(cfg));
+  if(!cfg.sheets.includes(activeTab))activeTab=cfg.sheets[0];
+  dlg.close(); render(); refresh();
+};
+document.getElementById("btnRefresh").onclick=refresh;
+
+/* ================= INIT ================= */
+document.getElementById("syncStatus").textContent="Zdroj: "+dataSource;
+render();
+if(sheetId(cfg.url)) refresh();
+</script>
+</body>
+</html>
